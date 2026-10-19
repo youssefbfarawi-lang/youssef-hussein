@@ -525,3 +525,4 @@ section[id],main [id]{scroll-margin-top:96px}
   .cta-row .gbtn{height:46px;padding:0 16px;font-size:14px;letter-spacing:.4px}
   .cta-row .obtn{height:44px;padding:0 14px;font-size:14px}
 }
+.cv-links a:last-child:nth-child(odd){grid-column:1/-1}
