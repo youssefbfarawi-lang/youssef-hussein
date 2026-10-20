@@ -61,6 +61,26 @@
   /* ---------- intro: warp stars, logo drawn as outline, name, doors (about 3.8s) ---------- */
   if (hasIntro) {
     try { sessionStorage.setItem("yh-intro", "1"); } catch (e) {}
+    /* lockup: name and tagline take exactly the logo's width */
+    const lock = $(".in-lock", introEl), nm = $(".in-name span", introEl), tg = $(".in-tag", introEl);
+    const fit = () => {
+      const L = lock.getBoundingClientRect().width;
+      const probe = document.createElement("span");
+      probe.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;font-family:"Clash Display","Satoshi",sans-serif;font-weight:500;font-size:100px;letter-spacing:.06em;text-transform:uppercase';
+      probe.textContent = nm.textContent; introEl.appendChild(probe);
+      const w = probe.getBoundingClientRect().width - 6; probe.remove();
+      lock.style.setProperty("--nf", (100 * L / w).toFixed(2) + "px");
+      const tf = Math.max(10, Math.min(14, L / 32));
+      lock.style.setProperty("--tf", tf + "px");
+      const t2 = document.createElement("span");
+      t2.style.cssText = `position:absolute;visibility:hidden;white-space:nowrap;font-family:Satoshi,sans-serif;font-size:${tf}px;letter-spacing:0;text-transform:uppercase`;
+      t2.textContent = "AI Ads CreatorGraphic Designer"; introEl.appendChild(t2);
+      const tw = t2.getBoundingClientRect().width; t2.remove();
+      const chars = 30, room = L - tw - 5 - 28;
+      lock.style.setProperty("--ts", Math.max(0, room / chars).toFixed(2) + "px");
+    };
+    fit(); addEventListener("resize", fit);
+    if (document.fonts) document.fonts.ready.then(fit);
     const cv = $(".in-warp", introEl), cx = cv.getContext("2d");
     let W, H, dpr, raf, warp = .2, done = false;
     const size = () => { dpr = Math.min(2, devicePixelRatio || 1); W = cv.width = innerWidth * dpr; H = cv.height = innerHeight * dpr; };
@@ -69,12 +89,29 @@
     const cols = ["255,255,255", "170,188,255", "120,140,255", "190,150,255", "120,255,140"];
     const mk = s => ({ x: (Math.random() - .5) * 2.2, y: (Math.random() - .5) * 2.2, z: s ? .15 + Math.random() * .85 : 1, pz: 1, c: cols[Math.random() < .72 ? (Math.random() * 3 | 0) : 3 + (Math.random() * 2 | 0)] });
     const stars = Array.from({ length: N }, () => mk(true));
+    stars.forEach(st => st.tw = Math.random() * 6.28);
+    let mx = 0, my = 0, tmx = 0, tmy = 0;
+    const onMove = e => { tmx = (e.clientX / innerWidth - .5) * 2; tmy = (e.clientY / innerHeight - .5) * 2; };
+    addEventListener("pointermove", onMove);
+    const sparks = [];
+    const burst = () => {
+      const r = $(".in-mark", introEl).getBoundingClientRect();
+      for (let i = 0; i < (innerWidth < 700 ? 70 : 140); i++) {
+        const edge = Math.random() * 4 | 0;
+        const x = (edge === 1 ? r.right : edge === 3 ? r.left : r.left + Math.random() * r.width) * dpr;
+        const y = (edge === 0 ? r.top : edge === 2 ? r.bottom : r.top + Math.random() * r.height) * dpr;
+        const cxp = (r.left + r.width / 2) * dpr, cyp = (r.top + r.height / 2) * dpr;
+        const a = Math.atan2(y - cyp, x - cxp) + (Math.random() - .5) * .6, v = (120 + Math.random() * 420) * dpr;
+        sparks.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1, d: .6 + Math.random() * .7, c: Math.random() < .25 ? "49,238,51" : Math.random() < .5 ? "170,188,255" : "255,255,255" });
+      }
+    };
     stars.forEach(st => st.pz = st.z);
     let lt = performance.now();
     const draw = t => {
       const dt = Math.min(.05, (t - lt) / 1000); lt = t;
       cx.clearRect(0, 0, W, H);
-      const f = Math.min(W, H) * .5, ox = W / 2, oy = H / 2;
+      mx += (tmx - mx) * Math.min(1, dt * 3); my += (tmy - my) * Math.min(1, dt * 3);
+      const f = Math.min(W, H) * .5, ox = W / 2 - mx * 40 * dpr, oy = H / 2 - my * 30 * dpr;
       cx.lineCap = "round";
       for (const st of stars) {
         st.pz = st.z; st.z -= dt * warp * .5;
@@ -82,9 +119,19 @@
         const sx = ox + st.x / st.z * f, sy = oy + st.y / st.z * f;
         const px = ox + st.x / st.pz * f, py = oy + st.y / st.pz * f;
         if (sx < -60 || sx > W + 60 || sy < -60 || sy > H + 60) { Object.assign(st, mk(false)); continue; }
-        cx.strokeStyle = `rgba(${st.c},${Math.min(1, (1 - st.z) * 1.5)})`;
+        st.tw += dt * 4;
+        const tw = warp < .6 ? .55 + .45 * Math.sin(st.tw) : 1;
+        cx.strokeStyle = `rgba(${st.c},${Math.min(1, (1 - st.z) * 1.5) * tw})`;
         cx.lineWidth = Math.max(.6, (1 - st.z) * 2.4) * dpr;
         cx.beginPath(); cx.moveTo(px, py); cx.lineTo(sx + .1, sy + .1); cx.stroke();
+      }
+      for (let i = sparks.length - 1; i >= 0; i--) {
+        const p = sparks[i];
+        p.life -= dt / p.d; if (p.life <= 0) { sparks.splice(i, 1); continue; }
+        const px = p.x, py = p.y;
+        p.vx *= 1 - dt * 2.2; p.vy *= 1 - dt * 2.2; p.x += p.vx * dt; p.y += p.vy * dt;
+        cx.strokeStyle = `rgba(${p.c},${p.life})`; cx.lineWidth = 1.6 * dpr * p.life + .4;
+        cx.beginPath(); cx.moveTo(px, py); cx.lineTo(p.x, p.y); cx.stroke();
       }
       if (!done) raf = requestAnimationFrame(draw);
     };
@@ -92,18 +139,19 @@
 
     const OUT = reduce ? 500 : 2450, OPEN = reduce ? 40 : 430, END = reduce ? 300 : 1250;
     const t0 = performance.now();
-    const ramp = t => { if (done) return; const p = Math.min(1, (t - t0) / OUT); warp = .2 + Math.pow(p, 4) * 2.4; if (p < 1) requestAnimationFrame(ramp); };
+    const ramp = t => { if (done) return; const p = Math.min(1, (t - t0) / OUT); warp = .08 + Math.pow(p, 3) * 2.6; if (p < 1) requestAnimationFrame(ramp); };
     requestAnimationFrame(() => requestAnimationFrame(() => {
       introEl.classList.add("s1");
       requestAnimationFrame(ramp);
       setTimeout(() => introEl.classList.add("s2"), 1550);
+      if (!reduce) setTimeout(burst, 1180);
       setTimeout(() => {
         introEl.classList.add("s-out"); warp = reduce ? .2 : 10;
         setTimeout(() => {
           introEl.classList.add("s-open"); doc.classList.add("intro-open");
           dispatchEvent(new Event("intro:open"));
           setTimeout(() => {
-            done = true; cancelAnimationFrame(raf);
+            done = true; cancelAnimationFrame(raf); removeEventListener("pointermove", onMove);
             doc.classList.remove("intro-on"); introEl.classList.add("gone");
             setTimeout(() => { introEl.remove(); doc.classList.remove("intro-open"); }, 1500);
           }, END);
