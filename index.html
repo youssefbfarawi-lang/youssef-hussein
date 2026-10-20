@@ -12,7 +12,7 @@
 </head>
 <body data-palette="home">
 <script>try{if(sessionStorage.getItem("yh-intro")&&!/[?&]intro/.test(location.search))document.documentElement.classList.add("no-intro");else document.documentElement.classList.add("intro-on")}catch(e){document.documentElement.classList.add("intro-on")}setTimeout(function(){var i=document.getElementById("intro");if(i){i.remove();document.documentElement.classList.remove("intro-on")}},9000)</script>
-<style>#intro{position:fixed;inset:0;z-index:10000;background:#05060c;overflow:hidden}.no-intro #intro{display:none}</style>
+<style>#intro{position:fixed;inset:0;z-index:10000;overflow:hidden}#intro:not(.s-open){background:#05060c}.no-intro #intro{display:none}</style>
 <div id="intro" aria-hidden="true">
   <div class="in-door in-top"></div><div class="in-door in-bot"></div>
   <canvas class="in-warp"></canvas>
