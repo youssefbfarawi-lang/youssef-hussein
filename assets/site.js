@@ -52,7 +52,84 @@
 
   /* ---------- reveal on load + on scroll ---------- */
   const heroSel = ".hero .rv,.hero .pop,.hero .split,.hero .words,.hero .tag,.a-hero .rv,.a-hero .split,.a-hero .words";
-  requestAnimationFrame(() => requestAnimationFrame(() => $$(heroSel).forEach(el => el.classList.add("in"))));
+  const startHero = () => requestAnimationFrame(() => requestAnimationFrame(() => $$(heroSel).forEach(el => el.classList.add("in"))));
+  const introEl = $("#intro");
+  const hasIntro = introEl && doc.classList.contains("intro-on");
+  if (introEl && !hasIntro) introEl.remove();
+  if (hasIntro) addEventListener("intro:open", startHero, { once: true }); else startHero();
+
+  /* ---------- intro: warp stars, logo, name, counter, doors ---------- */
+  if (hasIntro) {
+    try { sessionStorage.setItem("yh-intro", "1"); } catch (e) {}
+    const cv = $(".in-warp", introEl), cx = cv.getContext("2d");
+    const count = $(".in-count", introEl), bar = $(".in-bar", introEl);
+    let W, H, dpr, raf, warp = .25, done = false;
+    const size = () => { dpr = Math.min(2, devicePixelRatio || 1); W = cv.width = innerWidth * dpr; H = cv.height = innerHeight * dpr; };
+    size(); addEventListener("resize", size);
+    const N = innerWidth < 700 ? 160 : 320;
+    const cols = ["255,255,255", "160,180,255", "120,140,255", "190,150,255", "120,255,140"];
+    const mk = (s) => ({ x: (Math.random() - .5) * 2, y: (Math.random() - .5) * 2, z: s ? Math.random() : 1, pz: 0, c: cols[Math.random() < .7 ? (Math.random() * 3 | 0) : 3 + (Math.random() * 2 | 0)] });
+    const stars = Array.from({ length: N }, () => mk(true));
+    stars.forEach(st => st.pz = st.z);
+    let lt = performance.now();
+    const draw = t => {
+      const dt = Math.min(.05, (t - lt) / 1000); lt = t;
+      cx.fillStyle = `rgba(5,6,12,${warp > 2 ? .28 : .55})`;
+      cx.globalCompositeOperation = "source-over";
+      cx.clearRect(0, 0, W, H);
+      const f = Math.min(W, H) * .5, ox = W / 2, oy = H / 2;
+      cx.lineCap = "round";
+      for (const st of stars) {
+        st.pz = st.z; st.z -= dt * warp * .55;
+        if (st.z <= .02) { Object.assign(st, mk(false)); st.pz = st.z; continue; }
+        const sx = ox + st.x / st.z * f, sy = oy + st.y / st.z * f;
+        const px = ox + st.x / st.pz * f, py = oy + st.y / st.pz * f;
+        if (sx < -50 || sx > W + 50 || sy < -50 || sy > H + 50) { Object.assign(st, mk(false)); st.pz = st.z; continue; }
+        const a = Math.min(1, (1 - st.z) * 1.4);
+        cx.strokeStyle = `rgba(${st.c},${a})`;
+        cx.lineWidth = Math.max(.6, (1 - st.z) * 2.6) * dpr;
+        cx.beginPath(); cx.moveTo(px, py); cx.lineTo(sx + .1, sy + .1); cx.stroke();
+      }
+      if (!done) raf = requestAnimationFrame(draw);
+    };
+    raf = requestAnimationFrame(draw);
+
+    const ease = p => p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+    const T = reduce ? 600 : 2900, t0 = performance.now();
+    let finished = false;
+    const finish = () => {
+      if (finished) return; finished = true;
+      count.textContent = "100"; bar.querySelector("i").style.setProperty("--p", 1);
+      introEl.classList.add("s-out");
+      warp = reduce ? .25 : 9;
+      setTimeout(() => {
+        introEl.classList.add("s-open");
+        doc.classList.add("intro-open");
+        dispatchEvent(new Event("intro:open"));
+      }, reduce ? 50 : 520);
+      setTimeout(() => {
+        done = true; cancelAnimationFrame(raf);
+        doc.classList.remove("intro-on");
+        introEl.classList.add("gone");
+        setTimeout(() => { introEl.remove(); doc.classList.remove("intro-open"); }, 1600);
+      }, reduce ? 300 : 1900);
+    };
+    const tick = t => {
+      if (finished) return;
+      const p = Math.min(1, (t - t0) / T), e = ease(p);
+      count.textContent = String(Math.round(e * 100)).padStart(3, "0");
+      bar.querySelector("i").style.setProperty("--p", e);
+      warp = .25 + Math.pow(p, 3) * 3.2;
+      if (p < 1) requestAnimationFrame(tick); else setTimeout(finish, 180);
+    };
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      introEl.classList.add("s1");
+      setTimeout(() => introEl.classList.add("s2"), 1500);
+      requestAnimationFrame(tick);
+    }));
+    $(".in-skip", introEl).addEventListener("click", finish);
+    addEventListener("keydown", e => { if (e.key === "Escape" || e.key === "Enter") finish(); }, { once: true });
+  }
   const io = new IntersectionObserver(es => es.forEach(e => {
     if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
   }), { threshold: .12, rootMargin: "0px 0px -6% 0px" });
@@ -79,7 +156,7 @@
       else if (dir < 0 && i <= 0) { dir = 1; w = (w + 1) % words.length; wait = 380; }
       setTimeout(tick, wait);
     };
-    setTimeout(tick, 2200);
+    if (hasIntro) addEventListener("intro:open", () => setTimeout(tick, 2200), { once: true }); else setTimeout(tick, 2200);
   });
 
   /* ---------- programs ticker: 40px/s, half speed on hover ---------- */

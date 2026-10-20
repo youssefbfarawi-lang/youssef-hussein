@@ -11,6 +11,21 @@
 <link rel="preload" as="image" href="assets/img/avatar.jpg">
 </head>
 <body data-palette="home">
+<script>try{if(sessionStorage.getItem("yh-intro")&&!/[?&]intro/.test(location.search))document.documentElement.classList.add("no-intro");else document.documentElement.classList.add("intro-on")}catch(e){document.documentElement.classList.add("intro-on")}</script>
+<div id="intro" aria-hidden="true">
+  <div class="in-door in-top"></div><div class="in-door in-bot"></div>
+  <canvas class="in-warp"></canvas>
+  <div class="in-core">
+    <div class="in-ring"></div>
+    <img class="in-logo" src="assets/img/logo.png" alt="" width="160" height="160">
+    <div class="in-name"><span style="--i:0">Y</span><span style="--i:1">O</span><span style="--i:2">U</span><span style="--i:3">S</span><span style="--i:4">S</span><span style="--i:5">E</span><span style="--i:6">F</span><span style="--i:7">&nbsp;</span><span style="--i:8">H</span><span style="--i:9">U</span><span style="--i:10">S</span><span style="--i:11">S</span><span style="--i:12">E</span><span style="--i:13">I</span><span style="--i:14">N</span></div>
+    <div class="in-tag"><span>AI Ads Creator</span><i></i><span>Graphic Designer</span></div>
+  </div>
+  <div class="in-beam"></div>
+  <div class="in-foot"><span class="in-hint">Creating something worth watching</span><span class="in-count">000</span></div>
+  <div class="in-bar"><i></i></div>
+  <button class="in-skip" type="button">Skip</button>
+</div>
 <div class="stage" aria-hidden="true"><canvas></canvas><div class="vig"></div></div>
 <div class="orb" aria-hidden="true"></div>
 <header class="nav">
