@@ -61,26 +61,34 @@
   /* ---------- intro: warp stars, logo drawn as outline, name, doors (about 3.8s) ---------- */
   if (hasIntro) {
     try { sessionStorage.setItem("yh-intro", "1"); } catch (e) {}
-    /* lockup: name and tagline take exactly the logo's width */
-    const lock = $(".in-lock", introEl), nm = $(".in-name span", introEl), tg = $(".in-tag", introEl);
-    const fit = () => {
-      const L = lock.getBoundingClientRect().width;
-      const probe = document.createElement("span");
-      probe.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;font-family:"Clash Display","Satoshi",sans-serif;font-weight:500;font-size:100px;letter-spacing:.06em;text-transform:uppercase';
-      probe.textContent = nm.textContent; introEl.appendChild(probe);
-      const w = probe.getBoundingClientRect().width - 6; probe.remove();
-      lock.style.setProperty("--nf", (100 * L / w).toFixed(2) + "px");
-      const tf = Math.max(10, Math.min(14, L / 32));
-      lock.style.setProperty("--tf", tf + "px");
-      const t2 = document.createElement("span");
-      t2.style.cssText = `position:absolute;visibility:hidden;white-space:nowrap;font-family:Satoshi,sans-serif;font-size:${tf}px;letter-spacing:0;text-transform:uppercase`;
-      t2.textContent = "AI Ads CreatorGraphic Designer"; introEl.appendChild(t2);
-      const tw = t2.getBoundingClientRect().width; t2.remove();
-      const chars = 30, room = L - tw - 5 - 28;
-      lock.style.setProperty("--ts", Math.max(0, room / chars).toFixed(2) + "px");
+    /* logo raster, used to break the logo into pieces when the blade cuts it */
+    const mark = $(".in-mark", introEl), shards = [];
+    let raster = null, rasterCv = null, cutRect = null, cutting = false;
+    const blade = $(".in-blade", introEl);
+    (() => {
+      const svg = $(".in-logo", introEl).cloneNode(true);
+      svg.setAttribute("xmlns", "http://www.w3.org/2000/svg"); svg.setAttribute("width", 888); svg.setAttribute("height", 524);
+      svg.querySelectorAll(".lw *").forEach(e => e.setAttribute("fill", "#fff"));
+      svg.querySelectorAll(".lg *").forEach(e => e.setAttribute("fill", "#31ee33"));
+      const img = new Image();
+      img.onload = () => { const oc = document.createElement("canvas"); oc.width = 888; oc.height = 524; const o = oc.getContext("2d"); o.drawImage(img, 0, 0); rasterCv = oc; try { raster = o.getImageData(0, 0, 888, 524); } catch (e) {} };
+      img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(new XMLSerializer().serializeToString(svg));
+    })();
+    const CUT = 680;
+    const shatter = () => {
+      if (!raster) return;
+      const r = mark.getBoundingClientRect(), step = innerWidth < 700 ? 4.2 : 4;
+      cutRect = r; cutting = true;
+      const sx = 888 / r.width, sy = 524 / r.height, cyp = r.top + r.height / 2, now = performance.now();
+      for (let y = 0; y < r.height; y += step) for (let x = 0; x < r.width; x += step) {
+        const i = ((y * sy | 0) * 888 + (x * sx | 0)) * 4;
+        if (raster.data[i + 3] < 128) continue;
+        const g = raster.data[i] < 120, X = r.left + x, Y = r.top + y, up = Y < cyp ? -1 : 1;
+        shards.push({ x: X * dpr, y: Y * dpr, s: step * dpr * 1.15, c: g ? "#31ee33" : (Math.random() < .25 ? "#b9c6ff" : "#ffffff"), on: false,
+          vx: (200 + Math.random() * 900) * dpr, vy: up * (180 + Math.random() * 700 + Math.abs(Y - cyp) * 3) * dpr,
+          life: 1, d: .45 + Math.random() * .6 });
+      }
     };
-    fit(); addEventListener("resize", fit);
-    if (document.fonts) document.fonts.ready.then(fit);
     const cv = $(".in-warp", introEl), cx = cv.getContext("2d");
     let W, H, dpr, raf, warp = .2, done = false;
     const size = () => { dpr = Math.min(2, devicePixelRatio || 1); W = cv.width = innerWidth * dpr; H = cv.height = innerHeight * dpr; };
@@ -133,20 +141,45 @@
         cx.strokeStyle = `rgba(${p.c},${p.life})`; cx.lineWidth = 1.6 * dpr * p.life + .4;
         cx.beginPath(); cx.moveTo(px, py); cx.lineTo(p.x, p.y); cx.stroke();
       }
+      let bx = -1;
+      if (cutting) {
+        bx = blade.getBoundingClientRect().right * dpr;
+        if (rasterCv && cutRect && bx < (cutRect.right + 4) * dpr) {
+          cx.save(); cx.beginPath(); cx.rect(Math.max(bx, cutRect.left * dpr), 0, W, H); cx.clip();
+          cx.shadowColor = "rgba(64,94,227,.6)"; cx.shadowBlur = 18 * dpr;
+          cx.drawImage(rasterCv, cutRect.left * dpr, cutRect.top * dpr, cutRect.width * dpr, cutRect.height * dpr);
+          cx.restore();
+        }
+      }
+      for (let i = shards.length - 1; i >= 0; i--) {
+        const p = shards[i];
+        if (!p.on && p.x <= bx) p.on = true;
+        if (!p.on) continue;
+        {
+          p.life -= dt / p.d; if (p.life <= 0) { shards.splice(i, 1); continue; }
+          p.vx *= 1 - dt * 1.2; p.vy *= 1 - dt * 1.2; p.x += p.vx * dt; p.y += p.vy * dt;
+        }
+        const sz = p.s * (.35 + .65 * p.life);
+        cx.globalAlpha = p.life; cx.fillStyle = p.c;
+        cx.fillRect(p.x, p.y, sz, sz);
+      }
+      cx.globalAlpha = 1;
       if (!done) raf = requestAnimationFrame(draw);
     };
     raf = requestAnimationFrame(draw);
 
-    const OUT = reduce ? 500 : 2450, OPEN = reduce ? 40 : 430, END = reduce ? 300 : 1250;
+    const OUT = reduce ? 500 : 2250, OPEN = reduce ? 40 : 520, END = reduce ? 300 : 1250;
+    introEl.style.setProperty("--cut", CUT + "ms");
     const t0 = performance.now();
-    const ramp = t => { if (done) return; const p = Math.min(1, (t - t0) / OUT); warp = .08 + Math.pow(p, 3) * 2.6; if (p < 1) requestAnimationFrame(ramp); };
+    const ramp = t => { if (done) return; const p = Math.min(1, (t - t0) / OUT); warp = .08 + Math.pow(p, 3) * 2.2; if (p < 1) requestAnimationFrame(ramp); };
     requestAnimationFrame(() => requestAnimationFrame(() => {
       introEl.classList.add("s1");
       requestAnimationFrame(ramp);
-      setTimeout(() => introEl.classList.add("s2"), 1550);
       if (!reduce) setTimeout(burst, 1180);
       setTimeout(() => {
-        introEl.classList.add("s-out"); warp = reduce ? .2 : 10;
+        if (!reduce) shatter();
+        introEl.classList.add("s-cut");
+        setTimeout(() => { warp = reduce ? .2 : 9; }, CUT * .5);
         setTimeout(() => {
           introEl.classList.add("s-open"); doc.classList.add("intro-open");
           dispatchEvent(new Event("intro:open"));
