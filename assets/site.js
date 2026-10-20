@@ -58,77 +58,58 @@
   if (introEl && !hasIntro) introEl.remove();
   if (hasIntro) addEventListener("intro:open", startHero, { once: true }); else startHero();
 
-  /* ---------- intro: warp stars, logo, name, counter, doors ---------- */
+  /* ---------- intro: warp stars, logo drawn as outline, name, doors (about 3.8s) ---------- */
   if (hasIntro) {
     try { sessionStorage.setItem("yh-intro", "1"); } catch (e) {}
     const cv = $(".in-warp", introEl), cx = cv.getContext("2d");
-    const count = $(".in-count", introEl), bar = $(".in-bar", introEl);
-    let W, H, dpr, raf, warp = .25, done = false;
+    let W, H, dpr, raf, warp = .2, done = false;
     const size = () => { dpr = Math.min(2, devicePixelRatio || 1); W = cv.width = innerWidth * dpr; H = cv.height = innerHeight * dpr; };
     size(); addEventListener("resize", size);
-    const N = innerWidth < 700 ? 160 : 320;
-    const cols = ["255,255,255", "160,180,255", "120,140,255", "190,150,255", "120,255,140"];
-    const mk = (s) => ({ x: (Math.random() - .5) * 2, y: (Math.random() - .5) * 2, z: s ? Math.random() : 1, pz: 0, c: cols[Math.random() < .7 ? (Math.random() * 3 | 0) : 3 + (Math.random() * 2 | 0)] });
+    const N = innerWidth < 700 ? 150 : 300;
+    const cols = ["255,255,255", "170,188,255", "120,140,255", "190,150,255", "120,255,140"];
+    const mk = s => ({ x: (Math.random() - .5) * 2.2, y: (Math.random() - .5) * 2.2, z: s ? .15 + Math.random() * .85 : 1, pz: 1, c: cols[Math.random() < .72 ? (Math.random() * 3 | 0) : 3 + (Math.random() * 2 | 0)] });
     const stars = Array.from({ length: N }, () => mk(true));
     stars.forEach(st => st.pz = st.z);
     let lt = performance.now();
     const draw = t => {
       const dt = Math.min(.05, (t - lt) / 1000); lt = t;
-      cx.fillStyle = `rgba(5,6,12,${warp > 2 ? .28 : .55})`;
-      cx.globalCompositeOperation = "source-over";
       cx.clearRect(0, 0, W, H);
       const f = Math.min(W, H) * .5, ox = W / 2, oy = H / 2;
       cx.lineCap = "round";
       for (const st of stars) {
-        st.pz = st.z; st.z -= dt * warp * .55;
-        if (st.z <= .02) { Object.assign(st, mk(false)); st.pz = st.z; continue; }
+        st.pz = st.z; st.z -= dt * warp * .5;
+        if (st.z <= .03) { Object.assign(st, mk(false)); continue; }
         const sx = ox + st.x / st.z * f, sy = oy + st.y / st.z * f;
         const px = ox + st.x / st.pz * f, py = oy + st.y / st.pz * f;
-        if (sx < -50 || sx > W + 50 || sy < -50 || sy > H + 50) { Object.assign(st, mk(false)); st.pz = st.z; continue; }
-        const a = Math.min(1, (1 - st.z) * 1.4);
-        cx.strokeStyle = `rgba(${st.c},${a})`;
-        cx.lineWidth = Math.max(.6, (1 - st.z) * 2.6) * dpr;
+        if (sx < -60 || sx > W + 60 || sy < -60 || sy > H + 60) { Object.assign(st, mk(false)); continue; }
+        cx.strokeStyle = `rgba(${st.c},${Math.min(1, (1 - st.z) * 1.5)})`;
+        cx.lineWidth = Math.max(.6, (1 - st.z) * 2.4) * dpr;
         cx.beginPath(); cx.moveTo(px, py); cx.lineTo(sx + .1, sy + .1); cx.stroke();
       }
       if (!done) raf = requestAnimationFrame(draw);
     };
     raf = requestAnimationFrame(draw);
 
-    const ease = p => p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
-    const T = reduce ? 600 : 2900, t0 = performance.now();
-    let finished = false;
-    const finish = () => {
-      if (finished) return; finished = true;
-      count.textContent = "100"; bar.querySelector("i").style.setProperty("--p", 1);
-      introEl.classList.add("s-out");
-      warp = reduce ? .25 : 9;
-      setTimeout(() => {
-        introEl.classList.add("s-open");
-        doc.classList.add("intro-open");
-        dispatchEvent(new Event("intro:open"));
-      }, reduce ? 50 : 520);
-      setTimeout(() => {
-        done = true; cancelAnimationFrame(raf);
-        doc.classList.remove("intro-on");
-        introEl.classList.add("gone");
-        setTimeout(() => { introEl.remove(); doc.classList.remove("intro-open"); }, 1600);
-      }, reduce ? 300 : 1900);
-    };
-    const tick = t => {
-      if (finished) return;
-      const p = Math.min(1, (t - t0) / T), e = ease(p);
-      count.textContent = String(Math.round(e * 100)).padStart(3, "0");
-      bar.querySelector("i").style.setProperty("--p", e);
-      warp = .25 + Math.pow(p, 3) * 3.2;
-      if (p < 1) requestAnimationFrame(tick); else setTimeout(finish, 180);
-    };
+    const OUT = reduce ? 500 : 2450, OPEN = reduce ? 40 : 430, END = reduce ? 300 : 1250;
+    const t0 = performance.now();
+    const ramp = t => { if (done) return; const p = Math.min(1, (t - t0) / OUT); warp = .2 + Math.pow(p, 4) * 2.4; if (p < 1) requestAnimationFrame(ramp); };
     requestAnimationFrame(() => requestAnimationFrame(() => {
       introEl.classList.add("s1");
-      setTimeout(() => introEl.classList.add("s2"), 1500);
-      requestAnimationFrame(tick);
+      requestAnimationFrame(ramp);
+      setTimeout(() => introEl.classList.add("s2"), 1550);
+      setTimeout(() => {
+        introEl.classList.add("s-out"); warp = reduce ? .2 : 10;
+        setTimeout(() => {
+          introEl.classList.add("s-open"); doc.classList.add("intro-open");
+          dispatchEvent(new Event("intro:open"));
+          setTimeout(() => {
+            done = true; cancelAnimationFrame(raf);
+            doc.classList.remove("intro-on"); introEl.classList.add("gone");
+            setTimeout(() => { introEl.remove(); doc.classList.remove("intro-open"); }, 1500);
+          }, END);
+        }, OPEN);
+      }, OUT);
     }));
-    $(".in-skip", introEl).addEventListener("click", finish);
-    addEventListener("keydown", e => { if (e.key === "Escape" || e.key === "Enter") finish(); }, { once: true });
   }
   const io = new IntersectionObserver(es => es.forEach(e => {
     if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
