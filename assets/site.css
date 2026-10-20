@@ -526,3 +526,7 @@ section[id],main [id]{scroll-margin-top:96px}
   .cta-row .obtn{height:44px;padding:0 14px;font-size:14px}
 }
 .cv-links a:last-child:nth-child(odd){grid-column:1/-1}
+
+/* CV download */
+.cv-dl{display:inline-flex;align-items:center;gap:8px;margin-top:14px;padding:10px 18px;border-radius:999px;background:#405ee3;color:#fff;font-weight:500;font-size:14px;text-decoration:none;box-shadow:0 0 24px rgba(64,94,227,.45);transition:transform .35s var(--spring),box-shadow .3s}
+.cv-dl:hover{transform:translateY(-2px);box-shadow:0 0 34px rgba(64,94,227,.7)}
