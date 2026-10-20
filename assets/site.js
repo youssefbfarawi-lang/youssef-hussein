@@ -84,14 +84,16 @@
 
   /* ---------- programs ticker: 40px/s, half speed on hover ---------- */
   const APPS = [
-    ["indesign", "Adobe InDesign", "Used for layout and print design"],
+    ["higgsfield", "Higgsfield", "For AI video, UGC-style ads and cinematic camera moves"],
+    ["flow", "Google Flow", "For generating cinematic AI video shots with Veo"],
+    ["magnific", "Magnific", "All-in-one AI studio for image and video generation, editing and upscaling"],
+    ["premiere", "Adobe Premiere Pro", "For editing ads, cutting, sound and final export"],
     ["aftereffects", "Adobe After Effects", "For motion graphics and animated content"],
     ["photoshop", "Adobe Photoshop", "For visual design, image editing, and mockups"],
     ["illustrator", "Adobe Illustrator", "For logo design, icons, and vector illustrations"],
-    ["davinci", "DaVinci Resolve", "For video editing and color grading"],
+    ["indesign", "Adobe InDesign", "Used for layout and print design"],
     ["word", "Microsoft Word", "Used for document writing and formatting"],
-    ["powerpoint", "Microsoft PowerPoint", "Used for presentation design and slideshows"],
-    ["notion", "Notion", "For organizing projects, planning, and creative notes"]
+    ["powerpoint", "Microsoft PowerPoint", "Used for presentation design and slideshows"]
   ];
   $$("[data-ticker]").forEach(box => {
     const track = $(".track", box);
